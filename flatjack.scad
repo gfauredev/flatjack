@@ -1,9 +1,7 @@
-// FlatJack — one-piece, print-in-place folding phone stand
-// Size is parametric (Size tab): default 70 x 32 x 6 mm (13.4 mL bounding box, two-material)
-// Tilts: slots made for each wanted angle that fits (default 45 50 55 60 65 75 80 deg), portrait + landscape, USB-C friendly.
-// Print flat as-is (view = print), no supports. PLA or PETG, 0.2 mm layers.
-// All parts nest in one 6 mm layer, joined by captive bridged axles (3 hinges) and pins (ledge).
-// Customizer: Window > Customizer. Descriptions sit on the line above each parameter.
+// FlatJack: one-piece, print-in-place folding phone stand.
+// All parts nest in one card-thick layer, joined by three captive axles and two ledge pins.
+// Print flat as exported (view = print), no supports. Open Window > Customizer to set it up:
+// each parameter's description is on the line above it.
 
 /* [View] */
 // What to show: the print plate (folded), the stand set up with a dummy phone, the parts lifted apart, or the hinge test coupon
@@ -24,8 +22,8 @@ card_width = 40; // [26:0.1:60]
 thickness = 6; // [4:0.1:10]
 // Smallest gap between the ledge prongs, for the USB-C plug (it grows with the card width)
 min_plug_gap = 13; // [10:0.5:18]
-// Tilt angles you want. Each one that fits gets a slot; the others are skipped (listed in the console)
-wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80]; // NOTE In default length, 70° falls in T1/T2 hinge, hence automatically skipped
+// Tilt angles you want. Each one that fits gets a slot; the others are skipped and listed in the console (at the default length, 70 falls on the T1/T2 hinge)
+wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80];
 
 /* [Ledge] */
 // How the two ledge prongs are tied together. Root link: a bar at the prong roots, the cable slides in from the front. Front pull bar: bar at the tips (closed loop, cable must be threaded). None: independent prongs
@@ -88,508 +86,494 @@ link_air_gap = 0.5; // [0.3:0.05:0.8]
 tie_end_position = 6.2; // [5:0.1:10]
 
 /* [Hidden] */
-// ---- internal names ----
-mode = view;
-tilt_req = preview_tilt;
-phone = show_phone;
-landscape = phone_landscape;
-function lay_round(z) = max(1, round(z / layer_height)) * layer_height; // nearest whole layer
-function lay_up(z) = max(1, ceil(z / layer_height - 1e-6)) * layer_height; // at least z, whole layers
-t = lay_round(thickness);
-ledge_link = ledge_linking;
-uH = ledge_height;
-ledge_web = lay_round(ledge_floor_thickness);
-lipw = lip_thickness;
-material = export_material;
-dual_material = two_rigid_materials;
-g_nb = gap_between_materials;
-ca_nb = axle_clearance_between_materials;
-pads = grip_pads;
-pad_t = lay_up(pad_depth);
-catches = snap_catches;
-catch_grip = catch_strength;
-label_mode = angle_labels;
-label_grow = label_boldness;
-g = part_gap;
-ca = axle_clearance;
-ra = axle_radius;
-cK = kick_foot_offset;
-rc = kick_foot_radius;
-k_taper = kick_foot_taper;
-zgLk = lay_up(link_air_gap);
-uT2end = tie_end_position;
 $fn = resolution;
-only = ""; // set-up view: export a single part (debug)
-linked = ledge_link == "front";
-ax = t / 2; // hinge axis height (mid-thickness)
-lip = t - ledge_web; // lip height above the ledge surface = recess depth (max for the thickness)
-// gaps: parts of different rigid materials can sit closer (dual_material)
-gMP = dual_material ? g_nb : g; // ledge prong | M rail
-gMK = dual_material ? g_nb : g; // M rail | K arm
-gT = dual_material ? g_nb : g; // T1 arm | T2
-caE = dual_material ? ca_nb : ca; // axle clearance actually used
-gTM = dual_material ? g_nb : g; // T1 arm | M legs and M filler (side), where T1 does not face the prongs
-gPe = dual_material ? g_nb : 0.3; // ledge prong root / tip | M (end gaps), and the ledge stop face
-// Stop face slant: the ledge's back face rotates past the face's angle by d before closing the gap gPe
-// (contact near the top face: s*sin(d) + R*cos(d) = R + gPe, with s = R*tan(angle/2), R = t/2)
-lsR = t / 2;
-lsS = lsR * tan(ledge_angle / 2);
-ledge_face = ledge_angle - (lsS - sqrt(lsS * lsS - 2 * lsR * gPe)) / lsR * 180 / PI;
-ledge_open = ledge_angle - 0.5; // drawn just short of the stop
-// ---- width: every band across the card scales by the same factor ----
-BASE_BANDS = [min_plug_gap / 2, 2.8, 2.4, 2.8]; // half plug gap (tie inside), prong, M rail, K arm
-w_min = 2 * (BASE_BANDS[0] + BASE_BANDS[1] + BASE_BANDS[2] + BASE_BANDS[3] + gMP + gMK);
-w_s = max(1, (card_width / 2 - gMP - gMK) / (BASE_BANDS[0] + BASE_BANDS[1] + BASE_BANDS[2] + BASE_BANDS[3]));
-// y bands (half widths)
-yC = BASE_BANDS[0] * w_s; // plug gap half width
-yP = yC + BASE_BANDS[1] * w_s; // prong outer face
-yMi = yP + gMP; // M rail inner
-yMo = yMi + BASE_BANDS[2] * w_s; // M rail outer
-yKi = yMo + gMK; // K arm inner
-yKo = yKi + BASE_BANDS[3] * w_s; // K arm outer  (= card_width/2)
-yT1 = yC - g; // T1 outer (T1 and the prongs are the same material: keep g)
-yT1i = yT1 - 3.0 * w_s; // T1 arm inner (3 mm arms at base width: room for a centred digit)
-yT2 = yT1i - gT; // T2 outer
-// material of each rigid part (1 = A, 2 = B)
-function mat(part) = !dual_material ? 1 : (part == "M" || part == "T2") ? 1 : 2;
+eps = 0.01;
 
-// ---- length: extra length stretches the tie / kickstand / back-rest (about 85 %) and the top bar (rest) ----
-// The split is fine-tuned so one wanted tilt's T2 slot lands exactly on the ledge hinge, where the ledge
-// root link rests in it (otherwise that link would need an odd-angle slot that crowds out its neighbours).
-BASE_UT = 56.5;
-BASE_TOPBAR = t; // top bar at least as long as the card is thick (holds the kickstand knuckle)
-uF = t / 2; // foot hinge axis (M <-> T1)
-uT_off = t / 2 + 0.4 + (linked ? 2.95 : 0); // tie hinge -> top bar start (tie knuckle ends 0.4 mm before it)
-L_base = cK + rc + BASE_UT + uT_off + BASE_TOPBAR;
-L_delta = card_length - L_base; // may be negative: a shorter card shortens the tie and kickstand
-L_extra = max(0, L_delta);
-UT_LO = BASE_UT + min(0, L_delta);
-UT_HI = BASE_UT + L_delta; // tie hinge range (top bar >= base)
-// kinematics as a function of the tie hinge position x (the top bar takes the rest of the length)
-function topbar_x(x) = BASE_TOPBAR + L_delta - (x - BASE_UT);
-function p_x(x) = x + uT_off + topbar_x(x) / 2;
-function kL_x(x) = sqrt(pow(p_x(x) + cK, 2) + pow(t / 2 - rc, 2));
-function slotX_x(a, x) = let (q = [(p_x(x) - uF) * cos(a), t / 2 + (p_x(x) - uF) * sin(a)], dy = q[1] - rc) q[0] + sqrt(pow(kL_x(x), 2) - dy * dy);
-function t2u_x(a, x) = 2 * x - uF - slotX_x(a, x); // T2 slot centre (folded u) for tie hinge x
-function solve_x(a, lo, hi, n = 40) =
+// Coordinates: the folded card lies flat on the bed. u (= x) runs along the card from the back-rest
+// heels to its top bar, y across it (symmetric about y = 0), z up through the thickness.
+
+// ---------------- generic helpers ----------------
+function round_to_layers(z) = max(1, round(z / layer_height)) * layer_height;
+function ceil_to_layers(z) = max(1, ceil(z / layer_height - 1e-6)) * layer_height;
+// item of xs with the smallest key(x) (the first one on a tie)
+function argmin(xs, key) = let (d = [for (x = xs) key(x)], m = min(d)) [for (i = [0:len(xs) - 1]) if (d[i] == m) xs[i]][0];
+// bisection between lo and hi; go_up(m) says whether the solution lies above m
+function bisect(go_up, lo, hi, n = 40) =
   n == 0 ? (lo + hi) / 2
-  : let (m = (lo + hi) / 2) (t2u_x(a, m) < uH ? solve_x(a, m, hi, n - 1) : solve_x(a, lo, m, n - 1));
-UT_TARGET = UT_LO + 0.85 * (UT_HI - UT_LO);
-UT_CANDS =
-  (ledge_link != "root" || UT_HI - UT_LO < 0.5) ? []
-  : [
-    for (a = wanted_tilts) let (x = solve_x(a, UT_LO, UT_HI)) if (abs(t2u_x(a, x) - uH) < 0.05 && topbar_x(x) >= BASE_TOPBAR) x,
-  ];
-// u stations (x when folded)
-uT =
-  len(UT_CANDS) == 0 ? UT_TARGET
-  : let (d = [for (x = UT_CANDS) abs(x - UT_TARGET)], m = min(d)) [for (i = [0:len(d) - 1]) if (d[i] == m) UT_CANDS[i]][0];
-top_bar = topbar_x(uT);
-uPt = uH + t / 2 + ledge_depth + lipw; // prong tip
-uBar0 = uT + t / 2 + g;
-uBar1 = uBar0 + 2.2; // ledge pull bar (front link), just above the tie ends
-uTop0 = uT + uT_off;
-uTop1 = uTop0 + top_bar; // M top crossbar
-p = uTop0 + top_bar / 2; // M <-> K hinge axis: through-axle inside M top bar
-sw = 2 * rc + 0.6; // slot width
-sd = lay_up(2 * rc + 0.3); // slot height (cut from the tie's deployed underside), whole layers
-Yc = rc; // crossbar centre height: it rests on the table
-kL = sqrt(pow(p + cK, 2) + pow(ax - rc, 2)); // hinge axis -> crossbar axis
-kdel = atan2(ax - rc, p + cK); // crossbar sits below K's centre line (touches the print bed)
-// TPU catches: [host, guest, u, host face y, direction to guest, gap, bump radius]  (+y side; mirrored)
-emb = 1.5; // bump embedded depth in its host
-ccl = 0.25; // clearance around a bump in its recess
-CATCHES = [
-  ["M", "K", 10, yMo, 1, gMK, 1.0],
-  ["M", "T1", 16, yC, -1, gTM, 1.0],
-  ["M", "P", uPt - lipw / 2, yMi, -1, gMP, 0.8],
-  ["T1", "T2", 11, yT1i, -1, gT, 1.0],
-];
+  : let (m = (lo + hi) / 2) go_up(m) ? bisect(go_up, m, hi, n - 1) : bisect(go_up, lo, m, n - 1);
+function round1(x) = round(x * 10) / 10;
 
-// ---------------- helpers ----------------
-module box(u0, u1, y0, y1, z0 = 0, z1 = t) { translate([u0, y0, z0]) cube([u1 - u0, y1 - y0, z1 - z0]); }
-module sym_box(u0, u1, a, b) { box(u0, u1, a, b); box(u0, u1, -b, -a); }
-// bar whose end(s) are semicircles about a hinge axis
-module knuckle_bar(u0, u1, y0, y1, round0 = false, round1 = false) {
+// ---------------- layers ----------------
+t = round_to_layers(thickness); // card thickness
+axis_z = t / 2; // every hinge axis runs across the card at mid-thickness
+lip = t - round_to_layers(ledge_floor_thickness); // lip height above the ledge surface = ledge recess depth
+pad_t = ceil_to_layers(pad_depth);
+label_d = ceil_to_layers(0.6);
+
+// ---------------- options and gaps ----------------
+root_link = ledge_linking == "root";
+front_bar = ledge_linking == "front";
+// parts of different rigid materials can sit closer together
+gap_ab = two_rigid_materials ? gap_between_materials : part_gap; // side gap between an A part and a B part
+end_gap = two_rigid_materials ? gap_between_materials : 0.3; // ledge root / tip | M end gaps, and the ledge stop face
+axle_gap = two_rigid_materials ? axle_clearance_between_materials : axle_clearance;
+// rigid material of each part (1 = A, 2 = B)
+function mat(part) = !two_rigid_materials || part == "M" || part == "T2" ? 1 : 2;
+function show(m) = export_material == "all" || export_material == str(m);
+
+// Stop face slant: the ledge's back face turns past the face's angle before closing the gap end_gap
+// (contact near the top face: s*sin(d) + r*cos(d) = r + end_gap, with s = r*tan(angle/2), r = t/2)
+ledge_face = let (r = t / 2, s = r * tan(ledge_angle / 2)) ledge_angle - (s - sqrt(s * s - 2 * r * end_gap)) / r * 180 / PI;
+ledge_open = ledge_angle - 0.5; // drawn just short of the stop
+
+// ---------------- width: every band across the card scales by the same factor ----------------
+BANDS = [min_plug_gap / 2, 2.8, 2.4, 2.8]; // half plug gap (tie inside it), prong, M rail, K arm
+band_sum = BANDS[0] + BANDS[1] + BANDS[2] + BANDS[3];
+min_width = 2 * (band_sum + gap_ab + gap_ab);
+w_scale = max(1, (card_width / 2 - gap_ab - gap_ab) / band_sum);
+// half widths
+y_plug = BANDS[0] * w_scale; // plug gap
+y_prong = y_plug + BANDS[1] * w_scale; // prong outer face
+y_rail_in = y_prong + gap_ab; // M rail
+y_rail_out = y_rail_in + BANDS[2] * w_scale;
+y_kick_in = y_rail_out + gap_ab; // K arm
+y_kick_out = y_kick_in + BANDS[3] * w_scale; // = card_width / 2
+y_t1 = y_plug - part_gap; // T1 outer face (T1 and the prongs are the same material)
+y_t1_in = y_t1 - 3.0 * w_scale; // T1 arm inner face (3 mm arms at base width: room for a digit)
+y_t2 = y_t1_in - gap_ab; // T2 outer face
+
+// ---------------- length ----------------
+// Extra length stretches the tie, kickstand and back-rest (about 85 %) and the top bar (the rest).
+// The split is fine-tuned so that one wanted tilt's T2 slot lands exactly on the ledge hinge, where the
+// ledge root link rests in it (otherwise the link needs an odd-angle slot that crowds out its neighbours).
+BASE_TIE = 56.5; // tie hinge position at the base length
+MIN_TOP_BAR = t; // the top bar holds the kickstand's rounded hinge end
+u_foot = t / 2; // foot hinge axis (M <-> T1)
+tie_to_top = t / 2 + 0.4 + (front_bar ? 2.95 : 0); // tie hinge -> top bar start
+len_delta = card_length - (kick_foot_offset + kick_foot_radius + BASE_TIE + tie_to_top + MIN_TOP_BAR); // < 0: shorter tie
+TIE_LO = BASE_TIE + min(0, len_delta);
+TIE_HI = BASE_TIE + len_delta;
+TIE_TARGET = TIE_LO + 0.85 * (TIE_HI - TIE_LO);
+
+// Side-profile kinematics for a tie hinge at x (the top bar takes the rest of the length).
+// Tilt a = angle of M above the table; the kickstand crossbar rests on the table, the tie straddles it.
+function top_bar_at(x) = MIN_TOP_BAR + len_delta - (x - BASE_TIE);
+function kick_axis_at(x) = x + tie_to_top + top_bar_at(x) / 2; // M <-> K hinge, inside the top bar
+function kick_len_at(x) = sqrt(pow(kick_axis_at(x) + kick_foot_offset, 2) + pow(t / 2 - kick_foot_radius, 2));
+function kick_axis_world_at(a, x) = let (r = kick_axis_at(x) - u_foot) [r * cos(a), t / 2 + r * sin(a)];
+// distance from the foot hinge to the crossbar = slot position along the tie (deployed X)
+function slot_x_at(a, x) = let (q = kick_axis_world_at(a, x), dy = q[1] - kick_foot_radius) q[0] + sqrt(pow(kick_len_at(x), 2) - dy * dy);
+function t2_slot_u_at(a, x) = 2 * x - u_foot - slot_x_at(a, x); // T2 slot centre, folded
+function tie_for_link(a) = bisect(function(m) t2_slot_u_at(a, m) < ledge_height, TIE_LO, TIE_HI);
+TIE_CANDIDATES =
+  !root_link || TIE_HI - TIE_LO < 0.5 ? []
+  : [
+    for (a = wanted_tilts) let (x = tie_for_link(a))
+      if (abs(t2_slot_u_at(a, x) - ledge_height) < 0.05 && top_bar_at(x) >= MIN_TOP_BAR) x,
+  ];
+
+// ---------------- u stations (folded) ----------------
+u_tie = len(TIE_CANDIDATES) == 0 ? TIE_TARGET : argmin(TIE_CANDIDATES, function(x) abs(x - TIE_TARGET)); // T1 <-> T2
+top_bar = top_bar_at(u_tie);
+u_top0 = u_tie + tie_to_top; // M top bar
+u_top1 = u_top0 + top_bar;
+u_kick = kick_axis_at(u_tie); // M <-> K
+kick_drop = atan2(axis_z - kick_foot_radius, u_kick + kick_foot_offset); // crossbar sits below K's centre line
+u_prong_tip = ledge_height + t / 2 + ledge_depth + lip_thickness;
+u_bar0 = u_tie + t / 2 + part_gap; // front pull bar, just above the tie ends
+u_bar1 = u_bar0 + 2.2;
+slot_w = 2 * kick_foot_radius + 0.6;
+slot_h = ceil_to_layers(2 * kick_foot_radius + 0.3); // cut from the tie's deployed underside
+
+function slot_x(a) = slot_x_at(a, u_tie);
+function t2_slot_u(a) = t2_slot_u_at(a, u_tie);
+function kick_angle(a) = let (q = kick_axis_world_at(a, u_tie)) atan2(q[1] - kick_foot_radius, slot_x(a) - q[0]); // K below horizontal
+
+// ---------------- tilt slots ----------------
+// T1 carries the steep tilts (slots before the T2 knuckle), T2 the shallow ones (behind its bore, before its
+// rounded end). The ledge root link gets a T2 slot of its own, centred on the ledge hinge: a wanted angle if
+// its slot is within 1 mm, otherwise the nearest whole degree. Wanted angles too close to it are dropped.
+T2_END_X = 2 * u_tie - u_foot - tie_end_position - t / 2; // start of T2's rounded end (deployed X)
+T1_END_X = u_tie - u_foot - t / 2 - 0.3; // before the T2 knuckle
+T1_MIN_X = ledge_height - u_foot + slot_w + 1.5; // clear of T1's link notch
+T1_MAX_X = u_tie - u_foot - t / 2 - slot_w / 2;
+T2_MIN_X = u_tie - u_foot + axle_radius + axle_gap + 1.0 + slot_w / 2;
+T2_MAX_X = T2_END_X - slot_w / 2 - 1.0;
+LINK_EXACT = let (x = 2 * u_tie - u_foot - ledge_height) bisect(function(m) slot_x(m) > x, 20, 89.5);
+LINK_NEAR = argmin(wanted_tilts, function(a) abs(slot_x(a) - slot_x(LINK_EXACT)));
+LINK_TILT =
+  !root_link ? -1
+  : abs(slot_x(LINK_NEAR) - slot_x(LINK_EXACT)) <= 1.0 ? LINK_NEAR
+  : round(LINK_EXACT);
+link_fits = !root_link || (slot_x(LINK_TILT) >= T2_MIN_X && slot_x(LINK_TILT) <= T2_MAX_X);
+function fits_t1(a) = slot_x(a) >= T1_MIN_X && slot_x(a) <= T1_MAX_X;
+function fits_t2(a) = slot_x(a) >= T2_MIN_X && slot_x(a) <= T2_MAX_X && (!root_link || abs(slot_x(a) - slot_x(LINK_TILT)) >= slot_w + 2.0);
+T1_TILTS = [for (a = wanted_tilts) if (fits_t1(a)) a];
+T2_TILTS = [for (a = wanted_tilts) if (fits_t2(a)) a, if (root_link && link_fits) LINK_TILT];
+ALL_TILTS = concat(T1_TILTS, T2_TILTS);
+
+// Root link: fills its T2 slot, minus gaps (T1 gets one matching notch)
+link_u = t2_slot_u(LINK_TILT); // = ledge hinge
+link_u0 = link_u - slot_w / 2 + part_gap;
+link_u1 = link_u + slot_w / 2 - part_gap;
+link_z0 = t - slot_h + ceil_to_layers(link_air_gap); // slot floor + air gap
+
+// ---------------- console report ----------------
+// Phone (thickness tp) sits on the ledge's front corner; its centre of gravity vs the tipping lines:
+// the crossbar (rear) and the back-rest heels (front)
+function phone_u(tp) = ledge_height + (t / 2 + tp - (lip - t / 2) * cos(ledge_open)) / tan(ledge_open) - (lip - t / 2) * sin(ledge_open);
+function folded_to_world_x(u, z, a) = (u - u_foot) * cos(a) - (z - t / 2) * sin(a);
+function phone_cg_x(a, length, tp) = folded_to_world_x(phone_u(tp) + length / 2, t + tp / 2, a);
+
+echo(str("FlatJack ", card_length, " x ", 2 * y_kick_out, " x ", t, " mm = ", round1(card_length * 2 * y_kick_out * t / 1000), " mL"));
+echo(
+  str(
+    "Tilt slots: T1 ", T1_TILTS, "  T2 ", [for (a = T2_TILTS) round1(a)],
+    "  skipped: ", [for (a = wanted_tilts) if (!fits_t1(a) && !fits_t2(a) && a != LINK_TILT) a]
+  )
+);
+if (!link_fits) echo("WARNING: the ledge link slot does not fit on T2 at this size");
+echo(
+  str(
+    "Sideways support (half-widths): phone on ledge +/-", round1(y_prong), " mm, front feet +/-", round1(y_rail_out),
+    " mm, rear foot +/-", round1(y_kick_out), " mm"
+  )
+);
+for (a = ALL_TILTS)
+  echo(
+    str(
+      "  tilt ", round(a), ": rear margin ", round(slot_x(a) - phone_cg_x(a, 165, 9.5)), " mm (165 mm phone, portrait), front margin ",
+      round1(phone_cg_x(a, 77, 9.5)), " mm (landscape)"
+    )
+  );
+if (card_width < min_width - eps) echo(str("NOTE: card_width below the minimum ", min_width, " mm, using the minimum"));
+if (abs(t - thickness) > 0.001) echo(str("NOTE: thickness snapped to ", t, " mm (whole ", layer_height, " mm layers)"));
+
+// ---------------- shape helpers ----------------
+module box(u0, u1, y0, y1, z0 = 0, z1 = t) translate([u0, y0, z0]) cube([u1 - u0, y1 - y0, z1 - z0]);
+module sym() { children(); mirror([0, 1, 0]) children(); } // the part and its mirror across y = 0
+module rod_y(u, z, r, y0, y1) translate([u, y0, z]) rotate([-90, 0, 0]) cylinder(r=r, h=y1 - y0);
+// 2D profile drawn in (u, -z), extruded across the card from y0 to y1
+module along_y(y0, y1) translate([0, y0, 0]) rotate([-90, 0, 0]) linear_extrude(y1 - y0) children();
+// rotation about the hinge axis at u
+module hinge_rot(u, a) translate([u, 0, axis_z]) rotate([0, a, 0]) translate([-u, 0, -axis_z]) children();
+// full-thickness bar, either end optionally rounded about a hinge axis
+module knuckle_bar(u0, u1, y0, y1, round_start = false, round_end = false) {
   hull() {
-    box(round0 ? u0 + t / 2 : u0, round1 ? u1 - t / 2 : u1, y0, y1);
-    if (round0) translate([u0 + t / 2, y0, ax]) rotate([-90, 0, 0]) cylinder(r=t / 2, h=y1 - y0);
-    if (round1) translate([u1 - t / 2, y0, ax]) rotate([-90, 0, 0]) cylinder(r=t / 2, h=y1 - y0);
+    box(round_start ? u0 + t / 2 : u0, round_end ? u1 - t / 2 : u1, y0, y1);
+    if (round_start) rod_y(u0 + t / 2, axis_z, t / 2, y0, y1);
+    if (round_end) rod_y(u1 - t / 2, axis_z, t / 2, y0, y1);
   }
 }
-module sym() { children(); mirror([0, 1, 0]) children(); }
-// Hinges: cylindrical axles along y (no cones -> radial load cannot wedge parts apart).
-// Profiles are drawn in (u, -z) and extruded along +y from y0 to y1.
-module along_y(y0, y1) { translate([0, y0, 0]) rotate([-90, 0, 0]) linear_extrude(y1 - y0) children(); }
-// axle: circle with a flat bottom so it bridges cleanly when printed
-// dual_material: full round axle, offset down by its clearance so it prints resting on the bore
-// floor of the other (non-bonding) material -> no bridge at all
+
+// Hinges: cylindrical axles (a radial load cannot wedge the parts apart).
+// Single material: the axle has a flat underside so it bridges cleanly.
+// Two materials: fully round, dropped by its clearance so it prints resting on the other material's bore.
 module axle(u, y0, y1) {
-  along_y(y0, y1) if (dual_material)
-    translate([u, -(ax - caE)]) circle(r=ra);
-  else
-    intersection() {
-      translate([u, -ax]) circle(r=ra);
-      translate([u - 5, -(ax - 0.7 * ra) - 10]) square([10, 10]);
-    }
+  along_y(y0, y1)
+    if (two_rigid_materials)
+      translate([u, -(axis_z - axle_gap)]) circle(r=axle_radius);
+    else
+      intersection() {
+        translate([u, -axis_z]) circle(r=axle_radius);
+        translate([u - 5, -(axis_z - 0.7 * axle_radius) - 10]) square([10, 10]);
+      }
 }
-// bore: circle + 45-deg teardrop roof (prints without support), roof clipped 0.6 mm under the top
-// (bore drops 0.3 mm extra below the axis: ~1.1 mm of air under the bridged axle for sag)
+// Bore: circle with a 45° teardrop roof (no support), clipped 0.6 mm under the top. In single material it
+// drops 0.3 mm below the axis: about 1.1 mm of air under the bridged axle, for sag.
 module bore(u, y0, y1) {
-  along_y(y0 - 0.01, y1 + 0.01) intersection() {
+  along_y(y0 - eps, y1 + eps) intersection() {
       hull() {
-        translate([u, -ax]) circle(r=ra + caE);
-        translate([u, -ax + (dual_material ? 0 : 0.3)]) circle(r=ra + caE);
-        translate([u, -(ax + (ra + caE) * sqrt(2))]) square(0.01, center=true);
+        translate([u, -axis_z]) circle(r=axle_radius + axle_gap);
+        translate([u, -axis_z + (two_rigid_materials ? 0 : 0.3)]) circle(r=axle_radius + axle_gap);
+        translate([u, -(axis_z + (axle_radius + axle_gap) * sqrt(2))]) square(eps, center=true);
       }
       translate([u - 5, -(t - 0.6)]) square([10, 10]);
     }
 }
-module slot_at(u, zTop = true) {
-  // slot across, cut from top (zTop) or bottom face
-  translate([u - sw / 2, -20, zTop ? t - sd : -0.01]) cube([sw, 40, sd + 0.01]);
-}
+// tilt slot across the tie, cut from its top or bottom face
+module slot_at(u, top = true) translate([u - slot_w / 2, -20, top ? t - slot_h : -eps]) cube([slot_w, 40, slot_h + eps]);
 
-// ---------------- slot table (computed from the side-profile kinematics) ----------
-function Q(th) = [(p - uF) * cos(th), ax + (p - uF) * sin(th)];
-function slotX(th) = let (q = Q(th), dy = q[1] - Yc) q[0] + sqrt(kL * kL - dy * dy);
-function beta(th) = let (q = Q(th), dy = q[1] - Yc) atan2(dy, slotX(th) - q[0]);
-// Which wanted tilts fit: T1 carries the steep ones (slots in front of the T2 knuckle), T2 the shallow
-// ones (behind its hinge bore, before its rounded end). The ledge root link gets a slot of its own,
-// centred exactly on the ledge hinge (its angle is solved for), and wanted angles too close to it are dropped.
-T2_END_X = 2 * uT - uF - uT2end - t / 2; // start of T2's rounded end (deployed X)
-T1_END_X = uT - uF - t / 2 - 0.3; // before the T2 knuckle
-T1_MIN_X = uH - uF + sw + 1.5; // clear of T1's link notch
-T1_MAX_X = uT - uF - t / 2 - sw / 2;
-T2_MIN_X = uT - uF + ra + caE + 1.0 + sw / 2;
-T2_MAX_X = T2_END_X - sw / 2 - 1.0;
-function t2_slot_u(a) = 2 * uT - uF - slotX(a);
-function solve_tilt(X, lo = 20, hi = 89.5, n = 40) =
-  n == 0 ? (lo + hi) / 2
-  : let (m = (lo + hi) / 2) (slotX(m) > X ? solve_tilt(X, m, hi, n - 1) : solve_tilt(X, lo, m, n - 1));
-LINK_EXACT = solve_tilt(2 * uT - uF - uH); // angle whose slot is centred on the hinge
-LINK_NEAR = let (d = [for (a = wanted_tilts) abs(slotX(a) - slotX(LINK_EXACT))], m = min(d)) [for (i = [0:len(d) - 1]) if (d[i] == m) wanted_tilts[i]][0];
-// use that wanted angle if its slot is within 1 mm of the hinge, else the nearest whole degree
-LINK_A = ledge_link != "root" ? -1 : abs(slotX(LINK_NEAR) - slotX(LINK_EXACT)) <= 1.0 ? LINK_NEAR : round(LINK_EXACT);
-link_ok = ledge_link != "root" || (slotX(LINK_A) >= T2_MIN_X && slotX(LINK_A) <= T2_MAX_X);
-function ok1(a) = slotX(a) >= T1_MIN_X && slotX(a) <= T1_MAX_X;
-function ok2(a) = slotX(a) >= T2_MIN_X && slotX(a) <= T2_MAX_X && (ledge_link != "root" || abs(slotX(a) - slotX(LINK_A)) >= sw + 2.0);
-T1_angles = [for (a = wanted_tilts) if (ok1(a)) a];
-T2_angles = concat([for (a = wanted_tilts) if (ok2(a)) a], (ledge_link == "root" && link_ok) ? [LINK_A] : []);
-ALL_TILTS = concat(T1_angles, T2_angles);
-echo(str("FlatJack ", card_length, " x ", 2 * yKo, " x ", t, " mm = ", round(card_length * 2 * yKo * t / 100) / 10, " mL"));
-echo(
-  str(
-    "Tilt slots: T1 ", T1_angles, "  T2 ", [for (a = T2_angles) round(a * 10) / 10],
-    "  skipped: ", [for (a = wanted_tilts) if (!ok1(a) && !ok2(a) && a != LINK_A) a]
-  )
-);
-if (!link_ok) echo("WARNING: the ledge link slot does not fit on T2 at this size");
-echo(
-  str(
-    "Sideways support (half-widths): phone on ledge +/-", round(yP * 10) / 10, " mm, front feet +/-", round(yMo * 10) / 10,
-    " mm, rear foot +/-", round(yKo * 10) / 10, " mm"
-  )
-);
-// Stability report (side profile, 250 g phone): distance from the phone's centre of gravity to the rear
-// tipping line (crossbar) and, for landscape, to the front edge (heels).
-function phone_uL(tp) = uH + (t / 2 + tp - (lip - t / 2) * cos(ledge_open)) / tan(ledge_open) - (lip - t / 2) * sin(ledge_open);
-function m2w_x(u, z, th) = (u - uF) * cos(th) - (z - t / 2) * sin(th);
-function cg_x(th, Hp, tp) = m2w_x(phone_uL(tp) + Hp / 2, t + tp / 2, th);
-for (a = ALL_TILTS)
-  echo(
-    str(
-      "  tilt ", round(a), ": rear margin ", round(slotX(a) - cg_x(a, 165, 9.5)), " mm (165 mm phone, portrait), front margin ",
-      round(cg_x(a, 77, 9.5) * 10) / 10, " mm (landscape)"
-    )
-  );
-if (card_width < w_min - 0.01) echo(str("NOTE: card_width below the minimum ", w_min, " mm, using the minimum"));
-if (abs(t - thickness) > 0.001) echo(str("NOTE: thickness snapped to ", t, " mm (whole ", layer_height, " mm layers)"));
-// Root link: rests in its own T2 slot (see above) and fills it, minus gaps; T1 gets one matching notch.
-LK_U = t2_slot_u(LINK_A); // centre of that slot (folded u) = ledge hinge
-uLk0 = LK_U - sw / 2 + g;
-uLk1 = LK_U + sw / 2 - g; // link span along u
-zLk0 = t - sd + zgLk; // link underside (slot floor + air gap)
-module link_notch_T1() { if (ledge_link == "root") slot_at(LK_U, true); }
-
-// ---------------- TPU catches and pads (3rd material) ----------------
-// A catch = a TPU bump embedded in a host part, reaching across the gap into a recess in the guest part.
+// ---------------- TPU catches (3rd material) ----------------
+// A TPU bump is embedded in a host part and reaches across the gap into a recess in the guest part.
 // Folding the guest in or out makes the recess rim ride over the cone-shaped bump: a soft click.
-module along_dir(yf, dir) { translate([0, yf, 0]) mirror([0, dir < 0 ? 1 : 0, 0]) children(); }
-function bump_r(r, gap, s) = r - 0.5 * r * s / (gap + catch_grip);
-module catch_bump(c) {
-  along_dir(c[3], c[4]) translate([c[2], 0, ax]) rotate([-90, 0, 0]) {
-        translate([0, 0, -emb]) cylinder(r=c[6], h=emb + 0.01);
-        cylinder(r1=c[6], r2=bump_r(c[6], c[5], c[5] + catch_grip), h=c[5] + catch_grip);
-      }
-}
-module catch_pocket(c) {
-  along_dir(c[3], c[4]) translate([c[2], 0, ax]) rotate([-90, 0, 0])
-        translate([0, 0, -emb - 0.01]) cylinder(r=c[6], h=emb + 0.02);
-}
-module catch_recess(c) {
-  along_dir(c[3], c[4]) translate([c[2], 0, ax]) rotate([-90, 0, 0]) hull() {
-          translate([0, 0, c[5] - 0.01]) cylinder(r=bump_r(c[6], c[5], c[5]) + ccl, h=0.01);
-          translate([0, 0, c[5] + catch_grip + ccl]) cylinder(r=bump_r(c[6], c[5], c[5] + catch_grip) + ccl, h=0.01);
-        }
-}
-module catches_of_host(h) { if (catches) for (c = CATCHES) if (c[0] == h) sym() catch_bump(c); }
-module pockets_of_host(h) { if (catches) for (c = CATCHES) if (c[0] == h) sym() catch_pocket(c); }
-module recesses_of_guest(gp) { if (catches) for (c = CATCHES) if (c[1] == gp) sym() catch_recess(c); }
+CATCH_EMBED = 1.5; // bump depth in its host
+CATCH_CLEARANCE = 0.25; // around a bump in its recess
+// [host, guest, u, host face y, direction to guest, gap, bump radius] (+y side, mirrored)
+CATCHES = [
+  ["M", "K", 10, y_rail_out, 1, gap_ab, 1.0],
+  ["M", "T1", 16, y_plug, -1, gap_ab, 1.0],
+  ["M", "P", u_prong_tip - lip_thickness / 2, y_rail_in, -1, gap_ab, 0.8],
+  ["T1", "T2", 11, y_t1_in, -1, gap_ab, 1.0],
+];
+function bump_r(r, gap, s) = r - 0.5 * r * s / (gap + catch_strength); // cone radius at distance s from the host face
+// frame of a catch: origin on the host face, z towards the guest
+module catch_frame(c) translate([0, c[3], 0]) mirror([0, c[4] < 0 ? 1 : 0, 0]) translate([c[2], 0, axis_z]) rotate([-90, 0, 0]) children();
+module catch_bump(c) catch_frame(c) {
+    translate([0, 0, -CATCH_EMBED]) cylinder(r=c[6], h=CATCH_EMBED + eps);
+    cylinder(r1=c[6], r2=bump_r(c[6], c[5], c[5] + catch_strength), h=c[5] + catch_strength);
+  }
+module catch_pocket(c) catch_frame(c) translate([0, 0, -CATCH_EMBED - eps]) cylinder(r=c[6], h=CATCH_EMBED + 2 * eps);
+module catch_recess(c) catch_frame(c) hull() {
+      translate([0, 0, c[5] - eps]) cylinder(r=bump_r(c[6], c[5], c[5]) + CATCH_CLEARANCE, h=eps);
+      translate([0, 0, c[5] + catch_strength + CATCH_CLEARANCE]) cylinder(r=bump_r(c[6], c[5], c[5] + catch_strength) + CATCH_CLEARANCE, h=eps);
+    }
+function host_catches(n) = snap_catches ? [for (c = CATCHES) if (c[0] == n) c] : [];
+function guest_catches(n) = snap_catches ? [for (c = CATCHES) if (c[1] == n) c] : [];
 
-// Pads: flush TPU inlays (the pocket in the host and the pad are the same shape)
-module pads_of(h) {
-  if (pads) {
-    if (h == "M") sym() box(uPt + g + 1, uTop0 - 1, linked ? yMi + 0.4 : yC + 0.5, yMo - 0.4, t - pad_t, t); // phone-back strips
-    if (h == "P") sym() box(uPt - lipw, uPt - lipw + 0.8, yC + 0.4, yP - 0.9, 0, lip); // soft inner face of each lip
-    if (h == "T1") sym() box(uH + sw / 2 + 1, min(uH + 9, uF + min(concat([for (a = T1_angles) slotX(a)], [99])) - sw / 2 - 1), yT1i + 0.4, yT1 - 0.4, 0, pad_t); // feet (deployed bottom)
-    if (h == "T2") box(uT2end + 1.5, min(12.8, min(concat([for (a = T2_angles) t2_slot_u(a)], [99])) - sw / 2 - 1), -yT2 + 0.5, yT2 - 0.5, t - pad_t, t); // rear foot (top when folded)
+// ---------------- TPU pads (flush inlays: the pocket and the pad are the same shape) ----------------
+module pads_of(n) {
+  if (grip_pads) {
+    if (n == "M") // phone-back strips
+      sym() box(u_prong_tip + part_gap + 1, u_top0 - 1, front_bar ? y_rail_in + 0.4 : y_plug + 0.5, y_rail_out - 0.4, t - pad_t, t);
+    if (n == "P") // soft inner face of each lip
+      sym() box(u_prong_tip - lip_thickness, u_prong_tip - lip_thickness + 0.8, y_plug + 0.4, y_prong - 0.9, 0, lip);
+    if (n == "T1") // feet (deployed underside)
+      sym() box(ledge_height + slot_w / 2 + 1, min(ledge_height + 9, u_foot + min([99, for (a = T1_TILTS) slot_x(a)]) - slot_w / 2 - 1), y_t1_in + 0.4, y_t1 - 0.4, 0, pad_t);
+    if (n == "T2") // rear foot (top when folded)
+      box(tie_end_position + 1.5, min(12.8, min([99, for (a = T2_TILTS) t2_slot_u(a)]) - slot_w / 2 - 1), -y_t2 + 0.5, y_t2 - 0.5, t - pad_t, t);
   }
 }
-// Tilt labels, built in deployed tie coordinates (top face up, text readable from the front of the stand),
-// then mapped back to each part's folded print position. T2 digits sit side by side; on T1 one digit
-// per arm (the centre is open once T2 is flipped out).
-label_d = lay_up(0.6);
-function next_rear(X, xs, lim) = min(concat([for (v = xs) if (v > X + 0.1) v - sw / 2], [lim]));
-// Digits are placed one by one, centred on their measured outline (Liberation Sans Regular:
-// ink width ~0.66 x size, ink centre offset ~0.01 x size), then grown by label_grow.
-DIG_W = 0.66; // ink width / size
-lab_m = 0.45; // minimum wall beside a label (engraving)
+
+// ---------------- tilt labels ----------------
+// Built in deployed tie coordinates (top face up, reading from the front of the stand), then mapped back to
+// each part's folded position. On T2 the digits sit side by side; on T1 one digit per arm (the centre is
+// open once T2 is flipped out). Each digit is centred on its measured outline (Liberation Sans Regular:
+// ink width ~0.66 x size, ink centre offset ~0.01 x size), then grown by label_boldness.
+DIGIT_W = 0.66; // ink width / size
+LABEL_WALL = 0.45; // minimum wall beside a label (engraving)
+function next_rear(x, xs, lim) = min([lim, for (v = xs) if (v > x + 0.1) v - slot_w / 2]); // next slot behind x
 module digit2d(ch, h, wx) {
-  offset(r=label_grow) scale([wx, 1])
+  offset(r=label_boldness) scale([wx, 1])
       translate([-(ch == "1" ? 0.028 : 0.01) * h, -0.011 * h])
         text(ch, size=h, font="Liberation Sans:style=Regular", halign="center", valign="center");
 }
-// one label in deployed coordinates: centre (x, y), digit height h (along X), digits side by side across y
+// one label centred on (x, y): digit height h (along x), digits side by side across y
 module label_at(txt, x, y, h, wx, gap = 0.6) {
   n = len(txt);
-  wd = DIG_W * h * wx + 2 * label_grow;
-  pitch = wd + gap;
-  translate([x, y, t - label_d]) linear_extrude(label_d + 0.01) rotate([0, 0, -90]) // text x -> -y: reads from the front
+  pitch = DIGIT_W * h * wx + 2 * label_boldness + gap;
+  translate([x, y, t - label_d]) linear_extrude(label_d + eps) rotate([0, 0, -90]) // text x -> -y: reads from the front
       for (i = [0:n - 1]) translate([(i - (n - 1) / 2) * pitch, 0]) digit2d(txt[i], h, wx);
 }
-module labels_world(h) {
-  xs1 = [for (a = T1_angles) slotX(a)];
-  xs2 = [for (a = T2_angles) slotX(a)];
-  if (h == "T2")
-    for (a = T2_angles)
+module deployed_labels(n) {
+  if (n == "T2")
+    for (a = T2_TILTS)
       let (
-        X = slotX(a),
-        x0 = X + sw / 2,
-        x1 = next_rear(X, xs2, T2_END_X),
-        hh = min(2.6, x1 - x0 + 1.0 - 0.4 - 2 * label_grow), // may reach 0.5 mm over the slot edges
-        wx = min(1, ( (2 * yT2 - 2 * lab_m - 0.6) / 2 - 2 * label_grow) / (DIG_W * hh))
+        x0 = slot_x(a) + slot_w / 2,
+        x1 = next_rear(slot_x(a), [for (b = T2_TILTS) slot_x(b)], T2_END_X),
+        h = min(2.6, x1 - x0 + 1.0 - 0.4 - 2 * label_boldness), // may reach 0.5 mm over the slot edges
+        wx = min(1, ( (2 * y_t2 - 2 * LABEL_WALL - 0.6) / 2 - 2 * label_boldness) / (DIGIT_W * h))
       )
-      label_at(str(round(a)), uF + (x0 + x1) / 2, 0, hh, wx);
-  if (h == "T1")
-    for (a = T1_angles)
+      label_at(str(round(a)), u_foot + (x0 + x1) / 2, 0, h, wx);
+  if (n == "T1")
+    for (a = T1_TILTS)
       let (
-        X = slotX(a),
-        x0 = X + sw / 2,
-        x1 = next_rear(X, xs1, T1_END_X),
+        x0 = slot_x(a) + slot_w / 2,
+        x1 = next_rear(slot_x(a), [for (b = T1_TILTS) slot_x(b)], T1_END_X),
         d = str(round(a)),
-        hh = min(2.6, x1 - x0 - 0.6 - 2 * label_grow),
-        wx = min(1, (yT1 - yT1i - 2 * lab_m - 2 * label_grow) / (DIG_W * hh))
-      ) // one digit per arm
-      for (k = [0:1]) label_at(d[k], uF + (x0 + x1) / 2, (k == 0 ? 1 : -1) * (yT1 + yT1i) / 2, hh, wx);
+        h = min(2.6, x1 - x0 - 0.6 - 2 * label_boldness),
+        wx = min(1, (y_t1 - y_t1_in - 2 * LABEL_WALL - 2 * label_boldness) / (DIGIT_W * h))
+      )
+      for (k = [0:1]) label_at(d[k], u_foot + (x0 + x1) / 2, (k == 0 ? 1 : -1) * (y_t1 + y_t1_in) / 2, h, wx);
 }
-module labels_of(h) {
-  if (label_mode != "none") {
-    if (h == "T1") labels_world("T1");
-    if (h == "T2") translate([uT, 0, ax]) rotate([0, 180, 0]) translate([-uT, 0, -ax]) labels_world("T2");
+module labels_of(n) {
+  if (angle_labels != "none") {
+    if (n == "T1") deployed_labels("T1");
+    if (n == "T2") hinge_rot(u_tie, 180) deployed_labels("T2");
   }
 }
-module tpu_of(h) { pads_of(h); catches_of_host(h); if (label_mode == "inlay") labels_of(h); }
-module tpu_cut(h) { pads_of(h); pockets_of_host(h); recesses_of_guest(h); labels_of(h); }
 
-// ---------------- parts (folded coordinates) ----------------
-// Slanted stop face in M (prong band): parallel to the ledge's back face at angle ledge_face,
-// offset by g. The ledge swings out, its back face lands on this face -> opens to ~ledge_open.
+// TPU of part n, and the cut it leaves in the rigid part
+module tpu_of(n) {
+  pads_of(n);
+  for (c = host_catches(n)) sym() catch_bump(c);
+  if (angle_labels == "inlay") labels_of(n);
+}
+module tpu_cut(n) {
+  pads_of(n);
+  for (c = host_catches(n)) sym() catch_pocket(c);
+  for (c = guest_catches(n)) sym() catch_recess(c);
+  labels_of(n);
+}
+
+// ---------------- parts (folded) ----------------
+// Slanted stop face in M (prong band), parallel to the ledge's back face at ledge_face, end_gap away from it
 module ledge_stop() {
   intersection() {
-    box(uH - t / 2 - 0.5, uH, yC, yMi + 0.5); // below the axis; spans into the rail so it is fused to it
-    translate([uH, 0, ax]) rotate([0, -ledge_face, 0]) // frame of the opened ledge
-        translate([-20, yC - 1, t / 2 + gPe]) cube([40, yMi - yC + 2, 20]);
-    // half-space beyond its back face + gap
+    box(ledge_height - t / 2 - 0.5, ledge_height, y_plug, y_rail_in + 0.5); // below the axis, fused into the rail
+    hinge_rot(ledge_height, -ledge_face) // half-space behind the opened ledge's back face + gap
+      translate([ledge_height - 20, y_plug - 1, t + end_gap]) cube([40, y_rail_in - y_plug + 2, 20]);
   }
 }
+
+// M: back-rest (legs, rails, top bar)
 module part_M() {
   difference() {
     union() {
-      // legs (prong band + rail) from heel to block top
-      sym() knuckle_bar(uF - t / 2, uH - t / 2 - gPe, yC, yMo, round0=true);
+      sym() knuckle_bar(u_foot - t / 2, ledge_height - t / 2 - end_gap, y_plug, y_rail_out, round_start=true); // legs
       sym() ledge_stop();
-      // rails
-      sym() box(uH - t / 2 - gPe - 0.01, uTop0 + 0.01, yMi, yMo);
-      // prong-band filler above prong tips
-      if (!linked) sym() box(uPt + gPe, uTop0 + 0.01, yC, yMi + 0.01);
-      // top bar between the K arms, rounded end
-      knuckle_bar(uTop0, uTop1, -yMo, yMo, round1=true);
-      // foot axle: bridges leg to leg through T1's heel (ties the legs, captures T1)
-      axle(uF, -yC - 1, yC + 1);
+      sym() box(ledge_height - t / 2 - end_gap - eps, u_top0 + eps, y_rail_in, y_rail_out); // rails
+      if (!front_bar) sym() box(u_prong_tip + end_gap, u_top0 + eps, y_plug, y_rail_in + eps); // filler above the prong tips
+      knuckle_bar(u_top0, u_top1, -y_rail_out, y_rail_out, round_end=true); // top bar, between the K arms
+      axle(u_foot, -y_plug - 1, y_plug + 1); // foot axle: ties the legs, runs through T1's heel
     }
-    bore(p, -yMo, yMo); // K through-axle runs inside the top bar
-    sym() bore(uH, yP, yMo); // ledge pins pass through the rails (and the stop where it joins them)
+    bore(u_kick, -y_rail_out, y_rail_out); // K axle runs inside the top bar
+    sym() bore(ledge_height, y_prong, y_rail_out); // ledge pins pass through the rails
     tpu_cut("M");
   }
 }
 
-module part_prong() {
-  // one side (+y); mirrored for the other
+// P: ledge, two prongs (+ root link or front pull bar)
+module prong() { // +y side
   difference() {
     union() {
-      knuckle_bar(uH - t / 2, linked ? uBar1 : uPt, yC, yP, round0=true);
-      axle(uH, yP - 1, yMo); // pin through the M rail, flush with its outer face
+      knuckle_bar(ledge_height - t / 2, front_bar ? u_bar1 : u_prong_tip, y_plug, y_prong, round_start=true);
+      axle(ledge_height, y_prong - 1, y_rail_out); // pin through the M rail, flush with its outer face
     }
-    // ledge recess (folded bottom face -> deployed top face), leaves the lip at the tip
-    box(uH + t / 2, uPt - lipw, yC - 0.01, yP + 0.01, -0.01, lip);
+    // ledge recess (folded bottom = deployed top face), leaves the lip at the tip
+    box(ledge_height + t / 2, u_prong_tip - lip_thickness, y_plug - eps, y_prong + eps, -eps, lip);
   }
 }
-
-module part_ledge() {
+module part_P() {
   difference() {
     union() {
-      part_prong();
-      mirror([0, 1, 0]) part_prong();
-      if (linked) box(uBar0, uBar1, -yP + 0.5, yP - 0.5); // pull bar: rigidly couples both prongs
-      if (ledge_link == "root") {
-        // root link: fills the T2 slot nearest the hinge
+      sym() prong();
+      if (front_bar) box(u_bar0, u_bar1, -y_prong + 0.5, y_prong - 0.5);
+      if (root_link) {
+        // fills the T2 slot over the ledge hinge; its top follows the hinge curve
         intersection() {
-          box(uLk0, uLk1, -yC, yC, zLk0, t); // top follows the hinge curve
-          knuckle_bar(uH - t / 2, max(uLk1, uH) + 1, -yC - 0.01, yC + 0.01, round0=true);
+          box(link_u0, link_u1, -y_plug, y_plug, link_z0, t);
+          knuckle_bar(ledge_height - t / 2, max(link_u1, ledge_height) + 1, -y_plug - eps, y_plug + eps, round_start=true);
         }
+        // fused into the prongs, only inside them
         sym() intersection() {
-            box(uLk0, uLk1, yC - 0.01, yC + 0.5, zLk0, t); // fused into the prongs,
-            knuckle_bar(uH - t / 2, uPt, yC - 0.01, yC + 0.5, round0=true);
+            box(link_u0, link_u1, y_plug - eps, y_plug + 0.5, link_z0, t);
+            knuckle_bar(ledge_height - t / 2, u_prong_tip, y_plug - eps, y_plug + 0.5, round_start=true);
           }
-        // only inside them
       }
     }
     tpu_cut("P");
   }
 }
 
+// K: kickstand, two arms joined by the axle and the crossbar foot
 module part_K() {
+  r = kick_foot_radius;
+  foot_u = -kick_foot_offset;
   difference() {
     union() {
-      sym() knuckle_bar(-cK + k_taper, p + t / 2, yKi, yKo, round1=true); // arms
-      sym() hull() {
-          box(-cK + k_taper, -cK + k_taper + 0.01, yKi, yKo); // tapered feet
-          translate([-cK, yKi, rc]) rotate([-90, 0, 0]) cylinder(r=rc, h=yKo - yKi);
+      sym() knuckle_bar(foot_u + kick_foot_taper, u_kick + t / 2, y_kick_in, y_kick_out, round_end=true); // arms
+      sym() hull() { // arms taper down into the foot
+          box(foot_u + kick_foot_taper, foot_u + kick_foot_taper + eps, y_kick_in, y_kick_out);
+          rod_y(foot_u, r, r, y_kick_in, y_kick_out);
         }
-      translate([-cK, -yKo, rc]) rotate([-90, 0, 0]) cylinder(r=rc, h=2 * yKo); // crossbar = foot, prints on the bed
-      axle(p, -yKi - 1, yKi + 1); // through-axle: ties both arms, runs through M top bar
+      rod_y(foot_u, r, r, -y_kick_out, y_kick_out); // crossbar = foot, prints on the bed
+      axle(u_kick, -y_kick_in - 1, y_kick_in + 1); // ties both arms, runs through M's top bar
     }
     tpu_cut("K");
   }
 }
 
+// T1: tie, part 1 (hinged at M's foot)
 module part_T1() {
   difference() {
     union() {
-      sym() knuckle_bar(uF - t / 2, uT + t / 2, yT1i, yT1, round0=true, round1=true);
-      knuckle_bar(uF - t / 2, uT2end - gT, -yT1, yT1, round0=true); // heel crossbar
-      // closer to M where T1 faces M (heel and legs, and above the prong tips), not where it faces the prongs
-      sym() knuckle_bar(uF - t / 2, uH - t / 2 - 0.5, yT1 - 0.01, yC - gTM, round0=true);
-      if (!linked) sym() knuckle_bar(uPt + gPe + 0.5, uT + t / 2, yT1 - 0.01, yC - gTM, round1=true);
-      axle(uT, -yT1i - 1, yT1i + 1); // through-axle: ties both arm tips, runs through T2
+      sym() knuckle_bar(u_foot - t / 2, u_tie + t / 2, y_t1_in, y_t1, round_start=true, round_end=true); // arms
+      knuckle_bar(u_foot - t / 2, tie_end_position - gap_ab, -y_t1, y_t1, round_start=true); // heel crossbar
+      // wider where T1 faces M (heel and legs, and above the prong tips), not where it faces the prongs
+      sym() knuckle_bar(u_foot - t / 2, ledge_height - t / 2 - 0.5, y_t1 - eps, y_plug - gap_ab, round_start=true);
+      if (!front_bar) sym() knuckle_bar(u_prong_tip + end_gap + 0.5, u_tie + t / 2, y_t1 - eps, y_plug - gap_ab, round_end=true);
+      axle(u_tie, -y_t1_in - 1, y_t1_in + 1); // ties both arm tips, runs through T2
     }
-    bore(uF, -(yC - gTM), yC - gTM); // M foot axle runs through the heel
-    for (a = T1_angles) slot_at(uF + slotX(a), false); // underside: straddles K's crossbar
-    link_notch_T1();
+    bore(u_foot, -(y_plug - gap_ab), y_plug - gap_ab); // M's foot axle
+    for (a = T1_TILTS) slot_at(u_foot + slot_x(a), top=false); // underside: straddles K's crossbar
+    if (root_link) slot_at(link_u); // notch under the root link
     tpu_cut("T1");
   }
 }
 
+// T2: tie, part 2 (nested in T1, flips 180° about the T1 tip)
 module part_T2() {
   difference() {
-    union() {
-      knuckle_bar(uT2end, uT + t / 2, -yT2, yT2, round0=true, round1=true);
-    }
-    bore(uT, -yT2, yT2);
-    for (a = T2_angles) slot_at(2 * uT - uF - slotX(a), true); // folded top = deployed underside
+    knuckle_bar(tie_end_position, u_tie + t / 2, -y_t2, y_t2, round_start=true, round_end=true);
+    bore(u_tie, -y_t2, y_t2);
+    for (a = T2_TILTS) slot_at(t2_slot_u(a)); // folded top = deployed underside
     tpu_cut("T2");
   }
 }
 
-function show(m) = material == "all" || material == str(m);
-TPU_COLOR = [0.12, 0.12, 0.12];
-// one part with its TPU inlays; ms = material filter applies
+// [name, colour, label] in stacking order, bottom to top
+PARTS = [
+  ["T2", "Tomato", "T2 tie, part 2"],
+  ["T1", "Gold", "T1 tie, part 1"],
+  ["M", "SteelBlue", "M back-rest"],
+  ["P", "Orange", "ledge prongs"],
+  ["K", "SeaGreen", "K kickstand"],
+];
+function part_info(n) = [for (p = PARTS) if (p[0] == n) p][0];
+module rigid_part(n) {
+  if (n == "M") part_M();
+  if (n == "P") part_P();
+  if (n == "K") part_K();
+  if (n == "T1") part_T1();
+  if (n == "T2") part_T2();
+}
+// one part and its TPU, filtered by export_material
 module part(n) {
-  if (show(mat(n))) {
-    if (n == "M") color("SteelBlue") part_M();
-    if (n == "P") color("Orange") part_ledge();
-    if (n == "K") color("SeaGreen") part_K();
-    if (n == "T1") color("Gold") part_T1();
-    if (n == "T2") color("Tomato") part_T2();
-  }
-  if (show(3)) color(TPU_COLOR) tpu_of(n);
-}
-module stand_print() { for (n = ["M", "P", "K", "T1", "T2"]) part(n); }
-
-// ---------------- hinge test coupon: the longest bridged axle (K <-> M top bar), ~10 min print ----
-// Print it first: if the axle turns freely after a little flexing, the full stand will too.
-module hinge_test() {
-  if (show(mat("K"))) color("SeaGreen") { sym() box(-6, 6, yKi, yKo); axle(0, -yKi - 1, yKi + 1); } // two "K arms" + axle
-  if (show(mat("M"))) color("SteelBlue") difference() { knuckle_bar(-t / 2, t / 2, -yMo, yMo, true, true); bore(0, -yMo, yMo); } // "M top bar"
+  if (show(mat(n))) color(part_info(n)[1]) rigid_part(n);
+  if (show(3)) color([0.12, 0.12, 0.12]) tpu_of(n);
 }
 
-// ---------------- exploded view (folded parts lifted apart to show the nesting) ----------
+// ---------------- views ----------------
+module stand_print() for (p = PARTS) part(p[0]);
+
+// folded parts lifted apart to show the nesting
 module stand_exploded(dz = 14) {
-  parts = [["T2 tie, part 2", -2], ["T1 tie, part 1", -1], ["M back-rest", 0], ["ledge prongs", 1], ["K kickstand", 2]];
-  translate([0, 0, -2 * dz]) part("T2");
-  translate([0, 0, -1 * dz]) part("T1");
-  part("M");
-  translate([0, 0, 1 * dz]) part("P");
-  translate([0, 0, 2 * dz]) part("K");
-  for (pt = parts) color("DimGray") translate([uTop1 + 6, -3, pt[1] * dz + 1]) rotate([90, 0, 0]) linear_extrude(0.6) text(pt[0], size=4);
-}
-
-// ---------------- deployed preview ----------------
-module hingeRot(u, a) { translate([u, 0, ax]) rotate([0, a, 0]) translate([-u, 0, -ax]) children(); }
-module stand_deployed(th) {
-  b = beta(th);
-  phi = 180 - b - th - kdel;
-  echo(str("tilt ", th, " slotX ", slotX(th), " K-angle ", b, " K-open ", phi));
-  function on(n) = only == "" || only == n;
-  if (on("T1")) part("T1");
-  if (on("T2")) hingeRot(uT, 180) part("T2");
-  hingeRot(uF, -th) {
-    if (on("M")) part("M");
-    if (on("P")) hingeRot(uH, -ledge_open) part("P");
-    if (on("K")) hingeRot(p, -phi) part("K");
-    if (phone && only == "") {
-      Hp = landscape ? 76 : 160;
-      Wp = landscape ? 160 : 76;
-      tp = 9;
-      uL = uH + (t / 2 + tp - (lip - t / 2) * cos(ledge_open)) / tan(ledge_open) - (lip - t / 2) * sin(ledge_open);
-      color([0.15, 0.15, 0.18, 0.55]) translate([uL, -Wp / 2, t + 0.1]) cube([Hp, Wp, tp]);
-      if (!landscape)
-        color("White") translate([uL - 22, -6, t + tp / 2 - 3.5]) cube([22, 12, 7]);
-      // USB-C plug
-      else
-        color("White") translate([uL + Hp / 2 - 3.5 - 0, Wp / 2, t + tp / 2 - 3.5]) cube([7, 22, 7]);
+  for (i = [0:len(PARTS) - 1]) let (level = (i - 2) * dz) {
+      translate([0, 0, level]) part(PARTS[i][0]);
+      color("DimGray") translate([u_top1 + 6, -3, level + 1]) rotate([90, 0, 0]) linear_extrude(0.6) text(PARTS[i][2], size=4);
     }
-  }
-  if (only == "") color([0.85, 0.85, 0.85]) translate([-40, -60, -1]) cube([170, 120, 1]); // table
 }
 
-if (mode == "print")
-  stand_print();
-else if (mode == "deployed")
-  stand_deployed(let (d = [for (a = ALL_TILTS) abs(a - tilt_req)], m = min(d)) [for (i = [0:len(d) - 1]) if (d[i] == m) ALL_TILTS[i]][0]);
-else if (mode == "exploded")
-  stand_exploded();
-else if (mode == "hinge_test")
-  hinge_test();
-else if (mode == "M")
-  part_M();
-else if (mode == "P")
-  part_ledge();
-else if (mode == "K")
-  part_K();
-else if (mode == "T1")
-  part_T1();
-else if (mode == "T2")
-  part_T2();
-else if (mode == "tpu") tpu_of(only);
+// the longest bridged axle (K <-> M top bar), ~10 min print: if it turns after a little flexing, the stand will too
+module hinge_test() {
+  if (show(mat("K"))) color("SeaGreen") {
+      sym() box(-6, 6, y_kick_in, y_kick_out); // two "K arms"
+      axle(0, -y_kick_in - 1, y_kick_in + 1);
+    }
+  if (show(mat("M"))) color("SteelBlue") difference() { // "M top bar"
+        knuckle_bar(-t / 2, t / 2, -y_rail_out, y_rail_out, round_start=true, round_end=true);
+        bore(0, -y_rail_out, y_rail_out);
+      }
+}
+
+module dummy_phone(tp = 9) {
+  h = phone_landscape ? 76 : 160;
+  w = phone_landscape ? 160 : 76;
+  u = phone_u(tp);
+  color([0.15, 0.15, 0.18, 0.55]) translate([u, -w / 2, t + 0.1]) cube([h, w, tp]);
+  color("White") // USB-C plug: down between the prongs, or out the side in landscape
+    if (!phone_landscape) translate([u - 22, -6, t + tp / 2 - 3.5]) cube([22, 12, 7]);
+    else translate([u + h / 2 - 3.5, w / 2, t + tp / 2 - 3.5]) cube([7, 22, 7]);
+}
+
+module stand_deployed(tilt) {
+  b = kick_angle(tilt);
+  kick_open = 180 - b - tilt - kick_drop;
+  echo(str("tilt ", tilt, " slotX ", slot_x(tilt), " K-angle ", b, " K-open ", kick_open));
+  part("T1");
+  hinge_rot(u_tie, 180) part("T2");
+  hinge_rot(u_foot, -tilt) {
+    part("M");
+    hinge_rot(ledge_height, -ledge_open) part("P");
+    hinge_rot(u_kick, -kick_open) part("K");
+    if (show_phone) dummy_phone();
+  }
+  color([0.85, 0.85, 0.85]) translate([-40, -60, -1]) cube([170, 120, 1]); // table
+}
+
+if (view == "print") stand_print();
+else if (view == "deployed") stand_deployed(argmin(ALL_TILTS, function(a) abs(a - preview_tilt)));
+else if (view == "exploded") stand_exploded();
+else if (view == "hinge_test") hinge_test();
+else rigid_part(view); // debug: one rigid part by name (M, P, K, T1, T2)
