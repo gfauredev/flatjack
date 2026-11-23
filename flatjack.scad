@@ -25,7 +25,7 @@ thickness = 6; // [4:0.1:10]
 // Smallest gap between the ledge prongs, for the USB-C plug (it grows with the card width)
 min_plug_gap = 13; // [10:0.5:18]
 // Tilt angles you want. Each one that fits gets a slot; the others are skipped (listed in the console)
-wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80];
+wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80]; // NOTE In default length, 70° falls in T1/T2 hinge, hence automatically skipped
 
 /* [Ledge] */
 // How the two ledge prongs are tied together. Root link: a bar at the prong roots, the cable slides in from the front. Front pull bar: bar at the tips (closed loop, cable must be threaded). None: independent prongs
