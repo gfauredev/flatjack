@@ -25,7 +25,7 @@ thickness = 6; // [4:0.1:10]
 // Smallest gap between the ledge prongs, for the USB-C plug (it grows with the card width)
 min_plug_gap = 13; // [10:0.5:18]
 // Tilt angles you want. Each one that fits gets a slot; the others are skipped (listed in the console)
-wanted_tilts = [45, 50, 55, 60, 65, 70, 75, 80];
+wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80];
 
 /* [Ledge] */
 // How the two ledge prongs are tied together. Root link: a bar at the prong roots, the cable slides in from the front. Front pull bar: bar at the tips (closed loop, cable must be threaded). None: independent prongs
@@ -85,7 +85,7 @@ kick_foot_taper = 4; // [3:0.5:6]
 // Air gap between the ledge root link and the floor of the tie slot it rests in
 link_air_gap = 0.5; // [0.3:0.05:0.8]
 // Where T2's free end sits when folded (the T1 heel bar ends one gap before it)
-tie_end_position = 6.4; // [5:0.1:10]
+tie_end_position = 6.2; // [5:0.1:10]
 
 /* [Hidden] */
 // ---- internal names ----
