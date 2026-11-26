@@ -27,7 +27,7 @@ wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80];
 
 /* [Ledge] */
 // How the two ledge prongs are tied together. Root link: a bar at the prong roots, the cable slides in from the front. Front pull bar: bar at the tips (closed loop, cable must be threaded). None: independent prongs
-ledge_linking = "root"; // [root:Root link (cable friendly), front:Front pull bar, none:Independent prongs]
+ledge_linking = "root"; // [root:Root link cable friendly, front:Front pull bar, none:Independent prongs]
 // Height of the ledge hinge up the back-rest (sets how high the phone sits, i.e. USB-C plug clearance)
 ledge_height = 27; // [20:0.1:32]
 // Room for the phone between the back-rest and the lip (phone + case thickness)
@@ -41,7 +41,7 @@ ledge_angle = 87; // [75:0.5:90]
 
 /* [Materials (multi-tool printers)] */
 // Which material to render/export. Export one STL per material, load them as parts of one object in the slicer and assign tools. All = everything (preview)
-export_material = "all"; // [all:All materials, 1:Material 1 - rigid A (PLA): back-rest + T2, 2:Material 2 - rigid B (PETG): kickstand + ledge + T1, 3:Material 3 - flexible (TPU): pads + catches + labels]
+export_material = "all"; // [all:All materials, 1:Back-rest M + T2; PLA recommended, 2:Kickstand K + ledge P + T1; PETG recommended, 3:Pads + catches + labels; TPU mandatory]
 // Two rigid materials that do not bond (e.g. PLA + PETG): every hinge pairs A with B, so clearances can be tight and axles print resting on their bores (no bridging)
 two_rigid_materials = false;
 // Side gap between parts of different rigid materials
@@ -170,8 +170,7 @@ function tie_for_link(a) = bisect(function(m) t2_slot_u_at(a, m) < ledge_height,
 TIE_CANDIDATES =
   !root_link || TIE_HI - TIE_LO < 0.5 ? []
   : [
-    for (a = wanted_tilts) let (x = tie_for_link(a))
-      if (abs(t2_slot_u_at(a, x) - ledge_height) < 0.05 && top_bar_at(x) >= MIN_TOP_BAR) x,
+    for (a = wanted_tilts) let (x = tie_for_link(a)) if (abs(t2_slot_u_at(a, x) - ledge_height) < 0.05 && top_bar_at(x) >= MIN_TOP_BAR) x,
   ];
 
 // ---------------- u stations (folded) ----------------
@@ -274,14 +273,13 @@ module knuckle_bar(u0, u1, y0, y1, round_start = false, round_end = false) {
 // Single material: the axle has a flat underside so it bridges cleanly.
 // Two materials: fully round, dropped by its clearance so it prints resting on the other material's bore.
 module axle(u, y0, y1) {
-  along_y(y0, y1)
-    if (two_rigid_materials)
-      translate([u, -(axis_z - axle_gap)]) circle(r=axle_radius);
-    else
-      intersection() {
-        translate([u, -axis_z]) circle(r=axle_radius);
-        translate([u - 5, -(axis_z - 0.7 * axle_radius) - 10]) square([10, 10]);
-      }
+  along_y(y0, y1) if (two_rigid_materials)
+    translate([u, -(axis_z - axle_gap)]) circle(r=axle_radius);
+  else
+    intersection() {
+      translate([u, -axis_z]) circle(r=axle_radius);
+      translate([u - 5, -(axis_z - 0.7 * axle_radius) - 10]) square([10, 10]);
+    }
 }
 // Bore: circle with a 45° teardrop roof (no support), clipped 0.6 mm under the top. In single material it
 // drops 0.3 mm below the axis: about 1.1 mm of air under the bridged axle, for sag.
@@ -329,13 +327,13 @@ function guest_catches(n) = snap_catches ? [for (c = CATCHES) if (c[1] == n) c] 
 module pads_of(n) {
   if (grip_pads) {
     if (n == "M") // phone-back strips
-      sym() box(u_prong_tip + part_gap + 1, u_top0 - 1, front_bar ? y_rail_in + 0.4 : y_plug + 0.5, y_rail_out - 0.4, t - pad_t, t);
+    sym() box(u_prong_tip + part_gap + 1, u_top0 - 1, front_bar ? y_rail_in + 0.4 : y_plug + 0.5, y_rail_out - 0.4, t - pad_t, t);
     if (n == "P") // soft inner face of each lip
-      sym() box(u_prong_tip - lip_thickness, u_prong_tip - lip_thickness + 0.8, y_plug + 0.4, y_prong - 0.9, 0, lip);
+    sym() box(u_prong_tip - lip_thickness, u_prong_tip - lip_thickness + 0.8, y_plug + 0.4, y_prong - 0.9, 0, lip);
     if (n == "T1") // feet (deployed underside)
-      sym() box(ledge_height + slot_w / 2 + 1, min(ledge_height + 9, u_foot + min([99, for (a = T1_TILTS) slot_x(a)]) - slot_w / 2 - 1), y_t1_in + 0.4, y_t1 - 0.4, 0, pad_t);
+    sym() box(ledge_height + slot_w / 2 + 1, min(ledge_height + 9, u_foot + min([99, for (a = T1_TILTS) slot_x(a)]) - slot_w / 2 - 1), y_t1_in + 0.4, y_t1 - 0.4, 0, pad_t);
     if (n == "T2") // rear foot (top when folded)
-      box(tie_end_position + 1.5, min(12.8, min([99, for (a = T2_TILTS) t2_slot_u(a)]) - slot_w / 2 - 1), -y_t2 + 0.5, y_t2 - 0.5, t - pad_t, t);
+    box(tie_end_position + 1.5, min(12.8, min([99, for (a = T2_TILTS) t2_slot_u(a)]) - slot_w / 2 - 1), -y_t2 + 0.5, y_t2 - 0.5, t - pad_t, t);
   }
 }
 
@@ -377,8 +375,7 @@ module deployed_labels(n) {
         d = str(round(a)),
         h = min(2.6, x1 - x0 - 0.6 - 2 * label_boldness),
         wx = min(1, (y_t1 - y_t1_in - 2 * LABEL_WALL - 2 * label_boldness) / (DIGIT_W * h))
-      )
-      for (k = [0:1]) label_at(d[k], u_foot + (x0 + x1) / 2, (k == 0 ? 1 : -1) * (y_t1 + y_t1_in) / 2, h, wx);
+      ) for (k = [0:1]) label_at(d[k], u_foot + (x0 + x1) / 2, (k == 0 ? 1 : -1) * (y_t1 + y_t1_in) / 2, h, wx);
 }
 module labels_of(n) {
   if (angle_labels != "none") {
@@ -428,7 +425,8 @@ module part_M() {
 }
 
 // P: ledge, two prongs (+ root link or front pull bar)
-module prong() { // +y side
+module prong() {
+  // +y side
   difference() {
     union() {
       knuckle_bar(ledge_height - t / 2, front_bar ? u_bar1 : u_prong_tip, y_plug, y_prong, round_start=true);
@@ -467,7 +465,8 @@ module part_K() {
   difference() {
     union() {
       sym() knuckle_bar(foot_u + kick_foot_taper, u_kick + t / 2, y_kick_in, y_kick_out, round_end=true); // arms
-      sym() hull() { // arms taper down into the foot
+      sym() hull() {
+          // arms taper down into the foot
           box(foot_u + kick_foot_taper, foot_u + kick_foot_taper + eps, y_kick_in, y_kick_out);
           rod_y(foot_u, r, r, y_kick_in, y_kick_out);
         }
@@ -529,11 +528,12 @@ module part(n) {
 }
 
 // ---------------- views ----------------
-module stand_print() for (p = PARTS) part(p[0]);
+module stand_print()for (p = PARTS) part(p[0]);
 
 // folded parts lifted apart to show the nesting
 module stand_exploded(dz = 14) {
-  for (i = [0:len(PARTS) - 1]) let (level = (i - 2) * dz) {
+  for (i = [0:len(PARTS) - 1])
+    let (level = (i - 2) * dz) {
       translate([0, 0, level]) part(PARTS[i][0]);
       color("DimGray") translate([u_top1 + 6, -3, level + 1]) rotate([90, 0, 0]) linear_extrude(0.6) text(PARTS[i][2], size=4);
     }
@@ -541,11 +541,14 @@ module stand_exploded(dz = 14) {
 
 // the longest bridged axle (K <-> M top bar), ~10 min print: if it turns after a little flexing, the stand will too
 module hinge_test() {
-  if (show(mat("K"))) color("SeaGreen") {
+  if (show(mat("K")))
+    color("SeaGreen") {
       sym() box(-6, 6, y_kick_in, y_kick_out); // two "K arms"
       axle(0, -y_kick_in - 1, y_kick_in + 1);
     }
-  if (show(mat("M"))) color("SteelBlue") difference() { // "M top bar"
+  if (show(mat("M")))
+    color("SteelBlue") difference() {
+        // "M top bar"
         knuckle_bar(-t / 2, t / 2, -y_rail_out, y_rail_out, round_start=true, round_end=true);
         bore(0, -y_rail_out, y_rail_out);
       }
@@ -557,8 +560,10 @@ module dummy_phone(tp = 9) {
   u = phone_u(tp);
   color([0.15, 0.15, 0.18, 0.55]) translate([u, -w / 2, t + 0.1]) cube([h, w, tp]);
   color("White") // USB-C plug: down between the prongs, or out the side in landscape
-    if (!phone_landscape) translate([u - 22, -6, t + tp / 2 - 3.5]) cube([22, 12, 7]);
-    else translate([u + h / 2 - 3.5, w / 2, t + tp / 2 - 3.5]) cube([7, 22, 7]);
+  if (!phone_landscape)
+    translate([u - 22, -6, t + tp / 2 - 3.5]) cube([22, 12, 7]);
+  else
+    translate([u + h / 2 - 3.5, w / 2, t + tp / 2 - 3.5]) cube([7, 22, 7]);
 }
 
 module stand_deployed(tilt) {
@@ -576,8 +581,14 @@ module stand_deployed(tilt) {
   color([0.85, 0.85, 0.85]) translate([-40, -60, -1]) cube([170, 120, 1]); // table
 }
 
-if (view == "print") stand_print();
-else if (view == "deployed") stand_deployed(argmin(ALL_TILTS, function(a) abs(a - preview_tilt)));
-else if (view == "exploded") stand_exploded();
-else if (view == "hinge_test") hinge_test();
-else rigid_part(view); // debug: one rigid part by name (M, P, K, T1, T2)
+if (view == "print")
+  stand_print();
+else if (view == "deployed")
+  stand_deployed(argmin(ALL_TILTS, function(a) abs(a - preview_tilt)));
+else if (view == "exploded")
+  stand_exploded();
+else if (view == "hinge_test")
+  hinge_test();
+else
+  rigid_part(view);
+// debug: one rigid part by name (M, P, K, T1, T2)

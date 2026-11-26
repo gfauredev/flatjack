@@ -24,8 +24,8 @@ on table friction nor on hinge friction.
 
 ## Quick start
 
-1. Open `flatjack.scad` in OpenSCAD (2021.01 or newer) and open
-   **Window › Customizer**.
+1. Open `flatjack.scad` in OpenSCAD (2021.01 or newer) and open **Window ›
+   Customizer**.
 2. Set `card_length` and `card_width` (**Size**) and `layer_height` (**Print
    fit**).
 3. Check `view = deployed` to see the stand set up with a dummy phone.
@@ -50,8 +50,8 @@ margins of a 165 mm phone.
   folded. The ledge itself does not move, so the USB-C clearance is unchanged.
 - `thickness` (default 6 mm).
 - `wanted_tilts`: each angle that fits on T1 or T2 gets a slot, the others are
-  reported as skipped. At 70 mm, 70° falls on the T1/T2 hinge and is skipped;
-  at 90 mm it fits.
+  reported as skipped. At 70 mm, 70° falls on the T1/T2 hinge and is skipped; at
+  90 mm it fits.
 
 The model snaps the thickness, ledge floor, slot height, link air gap, pad and
 label depths to whole layers of `layer_height`.
@@ -131,8 +131,8 @@ apart until the parts fell off.
   bar).
 - **Two ledge pins** pass through M's side rails.
 - **Single material**: axles bridge over 1.15 mm of air, with a flat underside,
-  and the bores have a 45° teardrop roof. At 40 mm width the spans are about
-  9 mm (tie), 17 mm (foot) and 33 mm (K). The K axle is the risky one: PLA with
+  and the bores have a 45° teardrop roof. At 40 mm width the spans are about 9
+  mm (tie), 17 mm (foot) and 33 mm (K). The K axle is the risky one: PLA with
   good cooling sags a few tenths of a millimetre over that span. If the hinge
   test coupon fuses, raise `axle_clearance` or improve bridge cooling.
 
