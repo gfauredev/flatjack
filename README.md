@@ -85,8 +85,13 @@ Single material by default. On a multi-tool printer:
 | 3    | TPU (95A)      | grip pads, snap catches, labels |
 
 - `two_rigid_materials`: PLA and PETG don't bond, and every hinge pairs one with
-  the other. Gaps between them drop to `gap_between_materials` (0.1 mm) and the
-  axles print fully round, resting in their bores: no bridging.
+  the other. Side gaps between them drop to `gap_between_materials` (0.1 mm)
+  and the axles print fully round, resting in their bores: no bridging. Each
+  bore is one `layer_height` wider than the axle, plus
+  `axle_clearance_between_materials` (0.15 mm) of free play: the layer steps of
+  a round axle and its bore stick out about half a layer each, and with less
+  room they interlock and the hinge prints locked. Print the hinge test coupon
+  in both materials first: its axle is the longest one, K ↔ M.
 - `grip_pads`: flush TPU inlays on M's face under the phone, the lips' inner
   faces, and the tie's feet.
 - `snap_catches`: small TPU bumps that click K, T1, T2 and the ledge shut. Tune

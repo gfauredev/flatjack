@@ -46,8 +46,8 @@ export_material = "all"; // [all:All materials, 1:Back-rest M + T2; PLA recommen
 two_rigid_materials = false;
 // Side gap between parts of different rigid materials
 gap_between_materials = 0.1; // [0.05:0.05:0.35]
-// Axle clearance between parts of different rigid materials (radial)
-axle_clearance_between_materials = 0.1; // [0.05:0.05:0.4]
+// Free play of an axle in a bore of the other rigid material (radial). One layer height is added on top, so the printed layer steps of the axle and bore cannot interlock
+axle_clearance_between_materials = 0.15; // [0.05:0.05:0.4]
 // TPU grip pads: phone-back strips on the back-rest, soft inner face on the lips, feet under the tie (flush inlays)
 grip_pads = false;
 // Depth of the TPU pad inlays
@@ -116,7 +116,8 @@ front_bar = ledge_linking == "front";
 // parts of different rigid materials can sit closer together
 gap_ab = two_rigid_materials ? gap_between_materials : part_gap; // side gap between an A part and a B part
 end_gap = two_rigid_materials ? gap_between_materials : 0.3; // ledge root / tip | M end gaps, and the ledge stop face
-axle_gap = two_rigid_materials ? axle_clearance_between_materials : axle_clearance;
+// a round axle printed lying down: its layer steps stick out about half a layer, and its bore's reach in as much
+axle_gap = two_rigid_materials ? layer_height + axle_clearance_between_materials : axle_clearance;
 // rigid material of each part (1 = A, 2 = B)
 function mat(part) = !two_rigid_materials || part == "M" || part == "T2" ? 1 : 2;
 // the Customizer may pass the material as a number or a string
