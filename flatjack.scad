@@ -27,7 +27,7 @@ wanted_tilts = [40, 45, 50, 55, 60, 65, 70, 75, 80];
 
 /* [Ledge] */
 // How the two ledge prongs are tied together. Root link: a bar at the prong roots, the cable slides in from the front. Front pull bar: bar at the tips (closed loop, cable must be threaded). None: independent prongs
-ledge_linking = "root"; // [root:Root link (cable friendly), front:Front pull bar, none:Independent prongs]
+ledge_linking = "root"; // [root:Root link cable friendly, front:Front pull bar, none:Independent prongs]
 // Height of the ledge hinge up the back-rest (sets how high the phone sits, i.e. USB-C plug clearance)
 ledge_height = 27; // [20:0.1:32]
 // Room for the phone between the back-rest and the lip (phone + case thickness)
@@ -41,7 +41,7 @@ ledge_angle = 87; // [75:0.5:90]
 
 /* [Materials (multi-tool printers)] */
 // Which material to render/export. Export one STL per material, load them as parts of one object in the slicer and assign tools. All = everything (preview)
-export_material = "all"; // [all:All materials, 1:Material 1 - rigid A (PLA): back-rest + T2, 2:Material 2 - rigid B (PETG): kickstand + ledge + T1, 3:Material 3 - flexible (TPU): pads + catches + labels]
+export_material = "all"; // [all:All materials, 1:Back-rest M + T2; PLA recommended, 2:Kickstand K + ledge P + T1; PETG recommended, 3:Pads + catches + labels; TPU mandatory]
 // Two rigid materials that do not bond (e.g. PLA + PETG): every hinge pairs A with B, so clearances can be tight and axles print resting on their bores (no bridging)
 two_rigid_materials = false;
 // Side gap between parts of different rigid materials
