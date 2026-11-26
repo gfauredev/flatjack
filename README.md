@@ -94,8 +94,28 @@ Single material by default. On a multi-tool printer:
 - `angle_labels`: each slot's angle written on the tie, as a flush TPU `inlay`
   or `engrave`d. T2's labels print against the bed, since T2 flips over when
   deployed: turn on elephant-foot compensation.
-- `export_material`: renders one material at a time. Export the three STLs and
-  load them as parts of one object in the slicer.
+- `export_material`: renders one material at a time. Material 2 is empty
+  unless `two_rigid_materials` is on, and material 3 is empty without pads,
+  catches or inlaid labels (the console warns).
+
+**Exporting for PLA + PETG:**
+
+1. Turn on `two_rigid_materials` (and any TPU options you want).
+2. Set `export_material = 1`, render (F6) and export `flatjack_mat1.stl` (PLA).
+3. Set `export_material = 2`, render and export `flatjack_mat2.stl` (PETG).
+4. With TPU options on, do the same for material 3.
+5. In the slicer, import the files together as one object with several parts
+   (they share the same origin, so they line up) and give each one its tool.
+
+From the command line:
+
+```bash
+openscad -D two_rigid_materials=true -D export_material=1 -o flatjack_mat1.stl flatjack.scad
+```
+
+```bash
+openscad -D two_rigid_materials=true -D export_material=2 -o flatjack_mat2.stl flatjack.scad
+```
 
 ## How it works
 

@@ -119,7 +119,9 @@ end_gap = two_rigid_materials ? gap_between_materials : 0.3; // ledge root / tip
 axle_gap = two_rigid_materials ? axle_clearance_between_materials : axle_clearance;
 // rigid material of each part (1 = A, 2 = B)
 function mat(part) = !two_rigid_materials || part == "M" || part == "T2" ? 1 : 2;
-function show(m) = export_material == "all" || export_material == str(m);
+// the Customizer may pass the material as a number or a string
+function show(m) = export_material == "all" || str(export_material) == str(m);
+has_tpu = grip_pads || snap_catches || angle_labels == "inlay";
 
 // Stop face slant: the ledge's back face turns past the face's angle before closing the gap end_gap
 // (contact near the top face: s*sin(d) + r*cos(d) = r + end_gap, with s = r*tan(angle/2), r = t/2)
@@ -247,6 +249,8 @@ for (a = ALL_TILTS)
     )
   );
 if (card_width < min_width - eps) echo(str("NOTE: card_width below the minimum ", min_width, " mm, using the minimum"));
+if (show(2) && !show(1) && !two_rigid_materials) echo("WARNING: material 2 is empty: turn on two_rigid_materials");
+if (show(3) && !show(1) && !has_tpu) echo("WARNING: material 3 is empty: turn on grip_pads, snap_catches or inlaid angle_labels");
 if (abs(t - thickness) > 0.001) echo(str("NOTE: thickness snapped to ", t, " mm (whole ", layer_height, " mm layers)"));
 
 // ---------------- shape helpers ----------------
